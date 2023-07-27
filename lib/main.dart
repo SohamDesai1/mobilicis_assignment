@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_custom_carousel_slider/flutter_custom_carousel_slider.dart';
 import 'package:mobilicis_assignment/widgets/brand_card.dart';
+import 'package:mobilicis_assignment/widgets/product.dart';
+import 'package:tuple/tuple.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 void main() {
   runApp(MaterialApp(
@@ -25,12 +29,63 @@ class _MainAppState extends State<MainApp> {
     CarouselItem(image: const AssetImage('assets/images/carousel.png'))
   ];
 
+  List<String> img = [];
+  List<int> price = [];
+  List<String> name = [];
+  List<String> storage = [];
+  List<String> cond = [];
+  final TextEditingController _controller = TextEditingController();
+  String searchValue = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+  }
+
+  Future<
+      Tuple5<List<String>, List<int>, List<String>, List<String>,
+          List<String>>> _fetch() async {
+    const apiURL =
+        "https://dev2be.oruphones.com/api/v1/global/assignment/getListings?page=1&limit=10";
+    final res = await http.get(Uri.parse(apiURL));
+    var data = json.decode(res.body);
+    // var i = 0;
+    name = List<String>.from(data['listings'].map((e) => e['model']));
+    price = List<int>.from(data['listings'].map((e) => e['listingNumPrice']));
+    storage =
+        List<String>.from(data['listings'].map((e) => e['deviceStorage']));
+    img = List<String>.from(
+        data['listings'].map((e) => e['images'][0]['fullImage']));
+    cond = List<String>.from(data['listings'].map((e) => e['deviceCondition']));
+    // print(name);
+    // print(cond);
+    // print(price);
+    // print(img);
+    // print(storage);
+    return Tuple5<List<String>, List<int>, List<String>, List<String>,
+        List<String>>(name, price, storage, img, cond);
+  }
+
+  // _openFilter(BuildContext context) {
+  //   showBottomSheet(
+  //     context: context,
+  //     builder: (context) {
+  //       return SmartSelect.multiple(
+  //         modalType: S2ModalType.bottomSheet,
+  //         selectedValue: name,
+  //         onChange: (selected) => setState(() => name = selected.value),
+  //       );
+  //     },
+  //   );
+  // }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
           backgroundColor: const Color.fromARGB(255, 29, 33, 68),
-          toolbarHeight: 110,
+          toolbarHeight: MediaQuery.of(context).size.height / 7.8,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -40,9 +95,9 @@ class _MainAppState extends State<MainApp> {
                     padding: const EdgeInsets.only(bottom: 5.0),
                     child: IconButton(
                         onPressed: () {},
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.menu,
-                          size: 50,
+                          size: MediaQuery.of(context).size.width / 10,
                         )),
                   ),
                   SizedBox(
@@ -50,32 +105,33 @@ class _MainAppState extends State<MainApp> {
                   ),
                   Padding(
                     padding: const EdgeInsets.only(top: 5.0),
-                    child: Image.asset("assets/images/logo.png", height: 42),
+                    child: Image.asset("assets/images/logo.png",
+                        height: MediaQuery.of(context).size.height / 23),
                   ),
                   SizedBox(
                     width: MediaQuery.of(context).size.width / 4.7,
                   ),
-                  const Row(
+                  Row(
                     children: [
-                      Text(
+                      const Text(
                         "India",
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w600),
                       ),
                       Icon(
                         Icons.location_on_sharp,
-                        size: 30,
+                        size: MediaQuery.of(context).size.width / 12,
                       ),
                     ],
                   ),
-                  const Icon(
+                  Icon(
                     Icons.notifications_none_sharp,
-                    size: 40,
+                    size: MediaQuery.of(context).size.width / 9.6,
                   ),
                 ],
               ),
-              const SizedBox(
-                height: 7,
+              SizedBox(
+                height: MediaQuery.of(context).size.height / 75,
               ),
               Container(
                 width: MediaQuery.of(context).size.width / 1.02,
@@ -83,198 +139,250 @@ class _MainAppState extends State<MainApp> {
                 decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.all(Radius.circular(5))),
-                child: const Row(
+                child: Row(
                   children: [
                     Padding(
-                      padding: EdgeInsets.only(left: 5.0),
+                      padding: const EdgeInsets.only(left: 5.0),
                       child: Icon(
                         Icons.search,
                         color: Colors.black,
-                        size: 26,
+                        size: MediaQuery.of(context).size.width / 15,
                       ),
                     ),
                     SizedBox(
-                      width: 5,
+                      width: MediaQuery.of(context).size.width / 90,
                     ),
                     SizedBox(
-                      width: 300,
-                      child: TextField(
+                      width: MediaQuery.of(context).size.width / 1.3,
+                      // height: 400,
+                      child: const TextField(
                         decoration: InputDecoration(
                             border: InputBorder.none,
                             hintText: "Search with make and model.."),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
             ],
           ),
         ),
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).size.height / 98,
-                  right: MediaQuery.of(context).size.width / 1.5,
-                ),
-                child: const Text("Buy Top Brands"),
-              ),
-              const SizedBox(
-                height: 5,
-              ),
-              Padding(
-                padding: EdgeInsets.only(
-                    left: MediaQuery.of(context).size.width / 30),
-                child: Row(
+        body: FutureBuilder<
+            Tuple5<List<String>, List<int>, List<String>, List<String>,
+                List<String>>>(
+          future: _fetch(),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              var name = snapshot.data!.item1;
+              var price = snapshot.data!.item2;
+              var storage = snapshot.data!.item3;
+              var img = snapshot.data!.item4;
+              var cond = snapshot.data!.item5;
+              return SingleChildScrollView(
+                child: Column(
                   children: [
-                    BrandCard(
-                      img: 'assets/images/brands/apple.png',
-                      height: 70,
-                      width: 90,
-                      text: "",
-                    ),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    BrandCard(
-                      img: 'assets/images/brands/sam.png',
-                      height: 70,
-                      width: 90,
-                      text: "",
-                    ),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    BrandCard(
-                      img: 'assets/images/brands/mi.png',
-                      height: 70,
-                      width: 90,
-                      text: "",
-                    ),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    BrandCard(
-                      img: 'assets/images/brands/vivo.png',
-                      height: 70,
-                      width: 90,
-                      text: "",
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(
-                height: 7,
-              ),
-              CustomCarouselSlider(
-                items: items,
-                height: 250,
-                selectedDotWidth: 20,
-                unselectedDotWidth: 20,
-                width: MediaQuery.of(context).size.width,
-                autoplay: true,
-                showText: false,
-                showSubBackground: false,
-                indicatorShape: BoxShape.rectangle,
-                indicatorPosition: IndicatorPosition.bottom,
-                selectedDotColor: Colors.black,
-                unselectedDotColor: Colors.white,
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              Column(
-                // crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.only(
-                      right: MediaQuery.of(context).size.width / 1.3,
-                    ),
-                    child: const Text("Shop By"),
-                  ),
-                  const SizedBox(
-                    height: 7,
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                      left: MediaQuery.of(context).size.width / 30,
-                    ),
-                    child: Row(
-                      children: [
-                        BrandCard(
-                          img: 'assets/images/first.png',
-                          height: 120,
-                          width: 90,
-                          text: "Bestselling\n  Mobiles",
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        BrandCard(
-                          img: 'assets/images/sec.png',
-                          height: 120,
-                          width: 90,
-                          text: "Verified\nDevices Only",
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        BrandCard(
-                          img: 'assets/images/tri.png',
-                          height: 120,
-                          width: 90,
-                          text: "Like New\nCondition",
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        BrandCard(
-                          img: 'assets/images/four.png',
-                          height: 120,
-                          width: 90,
-                          text: "Phones with\nWarranty",
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(
-                height: 10,
-              ),
-              Padding(
-                padding: EdgeInsets.only(
-                  left: MediaQuery.of(context).size.width / 30,
-                ),
-                child: Row(
-                  children: [
-                    const Text("Best Deals Near You"),
-                    const SizedBox(
-                      width: 5,
-                    ),
-                    const Text(
-                      "India",
-                      style: TextStyle(
-                          color: Colors.amber,
-                          fontWeight: FontWeight.w700,
-                          decoration: TextDecoration.underline),
+                    Padding(
+                      padding: EdgeInsets.only(
+                        top: MediaQuery.of(context).size.height / 98,
+                        right: MediaQuery.of(context).size.width / 1.5,
+                      ),
+                      child: const Text("Buy Top Brands"),
                     ),
                     SizedBox(
-                      width: MediaQuery.of(context).size.width / 2.3,
+                      height: MediaQuery.of(context).size.width / 60,
                     ),
-                    Row(
+                    Padding(
+                      padding: EdgeInsets.only(
+                          left: MediaQuery.of(context).size.width / 30),
+                      child: Row(
+                        children: [
+                          BrandCard(
+                            img: 'assets/images/brands/apple.png',
+                            height: MediaQuery.of(context).size.height / 12.5,
+                            width: MediaQuery.of(context).size.width / 4.6,
+                            text: "",
+                          ),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width / 40,
+                          ),
+                          BrandCard(
+                            img: 'assets/images/brands/sam.png',
+                            height: MediaQuery.of(context).size.height / 12.5,
+                            width: MediaQuery.of(context).size.width / 4.6,
+                            text: "",
+                          ),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width / 40,
+                          ),
+                          BrandCard(
+                            img: 'assets/images/brands/mi.png',
+                            height: MediaQuery.of(context).size.height / 12.5,
+                            width: MediaQuery.of(context).size.width / 4.6,
+                            text: "",
+                          ),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width / 40,
+                          ),
+                          BrandCard(
+                            img: 'assets/images/brands/vivo.png',
+                            height: MediaQuery.of(context).size.height / 12.5,
+                            width: MediaQuery.of(context).size.width / 4.6,
+                            text: "",
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.width / 60,
+                    ),
+                    CustomCarouselSlider(
+                      items: items,
+                      height: MediaQuery.of(context).size.height / 3.5,
+                      selectedDotWidth: 20,
+                      unselectedDotWidth: 20,
+                      width: MediaQuery.of(context).size.width,
+                      autoplay: true,
+                      showText: false,
+                      showSubBackground: false,
+                      indicatorShape: BoxShape.rectangle,
+                      indicatorPosition: IndicatorPosition.bottom,
+                      selectedDotColor: Colors.black,
+                      unselectedDotColor: Colors.white,
+                    ),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.width / 60,
+                    ),
+                    Column(
+                      // crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Sort"),
-                        IconButton(
-                            onPressed: () {}, icon: const Icon(Icons.sort))
+                        Padding(
+                          padding: EdgeInsets.only(
+                            right: MediaQuery.of(context).size.width / 1.3,
+                          ),
+                          child: const Text("Shop By"),
+                        ),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.width / 60,
+                        ),
+                        Padding(
+                          padding: EdgeInsets.only(
+                            left: MediaQuery.of(context).size.width / 30,
+                          ),
+                          child: Row(
+                            children: [
+                              BrandCard(
+                                img: 'assets/images/first.png',
+                                height:
+                                    MediaQuery.of(context).size.height / 7.4,
+                                width: MediaQuery.of(context).size.width / 4.6,
+                                text: "Bestselling\n  Mobiles",
+                              ),
+                              SizedBox(
+                                width: MediaQuery.of(context).size.width / 40,
+                              ),
+                              BrandCard(
+                                img: 'assets/images/sec.png',
+                                height:
+                                    MediaQuery.of(context).size.height / 7.4,
+                                width: MediaQuery.of(context).size.width / 4.6,
+                                text: "Verified\nDevices Only",
+                              ),
+                              SizedBox(
+                                width: MediaQuery.of(context).size.width / 40,
+                              ),
+                              BrandCard(
+                                img: 'assets/images/tri.png',
+                                height:
+                                    MediaQuery.of(context).size.height / 7.4,
+                                width: MediaQuery.of(context).size.width / 4.6,
+                                text: "Like New\nCondition",
+                              ),
+                              SizedBox(
+                                width: MediaQuery.of(context).size.width / 40,
+                              ),
+                              BrandCard(
+                                img: 'assets/images/four.png',
+                                height:
+                                    MediaQuery.of(context).size.height / 7.4,
+                                width: MediaQuery.of(context).size.width / 4.6,
+                                text: "Phones with\nWarranty",
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.width / 40,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(
+                        left: MediaQuery.of(context).size.width / 30,
+                      ),
+                      child: Row(
+                        children: [
+                          const Text("Best Deals Near You"),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width / 70,
+                          ),
+                          const Text(
+                            "India",
+                            style: TextStyle(
+                              color: Colors.amber,
+                              fontWeight: FontWeight.w700,
+                              decoration: TextDecoration.underline,
+                              fontSize: 18,
+                            ),
+                          ),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width / 2.8,
+                          ),
+                          InkWell(
+                            // onTap: _openFilter(context),
+                            child: Row(
+                              children: [
+                                const Text("Filter"),
+                                SizedBox(
+                                  width: MediaQuery.of(context).size.width / 50,
+                                ),
+                                const Icon(Icons.sort)
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.width / 40,
+                    ),
+                    for (var j = 0; j < (name.length - 1) / 2; j++)
+                      Row(
+                        children: [
+                          ProductCard(
+                            img: img[j * 2],
+                            name: name[j * 2],
+                            price: price[j * 2],
+                            storage: storage[j * 2],
+                            cond: cond[j * 2],
+                          ),
+                          ProductCard(
+                            img: img[j * 2 + 1],
+                            name: name[j * 2 + 1],
+                            price: price[j * 2 + 1],
+                            storage: storage[j * 2 + 1],
+                            cond: cond[j * 2 + 1],
+                          ),
+                        ],
+                      ),
                   ],
                 ),
-              )
-            ],
-          ),
+              );
+            } else if (snapshot.hasError) {
+              return const Center(child: Text("Error fetching categories"));
+            } else {
+              return const Center(child: CircularProgressIndicator());
+            }
+          },
         ));
   }
 }
