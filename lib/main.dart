@@ -35,19 +35,21 @@ class _MainAppState extends State<MainApp> {
   List<String> storage = [];
   List<String> cond = [];
   final TextEditingController _controller = TextEditingController();
-  String searchValue = '';
+  Map<String, String> selectedFilters = {};
+  Map<String, List<String>> filters = {};
 
   @override
   void initState() {
     super.initState();
     _fetch();
+    getFiltersFromApi();
   }
 
   Future<
       Tuple5<List<String>, List<int>, List<String>, List<String>,
           List<String>>> _fetch() async {
     const apiURL =
-        "https://dev2be.oruphones.com/api/v1/global/assignment/getListings?page=1&limit=10";
+        "https://dev2be.oruphones.com/api/v1/global/assignment/getListings?page=2&limit=10";
     final res = await http.get(Uri.parse(apiURL));
     var data = json.decode(res.body);
     // var i = 0;
@@ -56,7 +58,7 @@ class _MainAppState extends State<MainApp> {
     storage =
         List<String>.from(data['listings'].map((e) => e['deviceStorage']));
     img = List<String>.from(
-        data['listings'].map((e) => e['images'][0]['fullImage']));
+        data['listings'].map((e) => e['defaultImage']['fullImage']));
     cond = List<String>.from(data['listings'].map((e) => e['deviceCondition']));
     // print(name);
     // print(cond);
@@ -67,18 +69,60 @@ class _MainAppState extends State<MainApp> {
         List<String>>(name, price, storage, img, cond);
   }
 
-  // _openFilter(BuildContext context) {
-  //   showBottomSheet(
-  //     context: context,
-  //     builder: (context) {
-  //       return SmartSelect.multiple(
-  //         modalType: S2ModalType.bottomSheet,
-  //         selectedValue: name,
-  //         onChange: (selected) => setState(() => name = selected.value),
-  //       );
-  //     },
-  //   );
-  // }
+  Future<void> getFiltersFromApi() async {
+    const apiURL =
+        "https://dev2be.oruphones.com/api/v1/global/assignment/getFilters?isLimited=true";
+    final res = await http.get(Uri.parse(apiURL));
+    var data = json.decode(res.body);
+    setState(() {
+      filters = Map<String, List<String>>.from(data['filters']
+          .map((key, value) => MapEntry(key, List<String>.from(value))));
+    });
+  }
+
+  void _showFilterSheet() {
+    showModalBottomSheet(
+        context: context,
+        builder: (BuildContext bc) {
+          return SingleChildScrollView(
+            child: Column(
+              children: filters.entries.map((entry) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Text(entry.key,
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    Wrap(
+                      children: entry.value.map((value) {
+                        return Padding(
+                          padding: const EdgeInsets.all(2.0),
+                          child: FilterChip(
+                            label: Text(value),
+                            selected: selectedFilters[entry.key] == value,
+                            onSelected: (bool isSelected) {
+                              setState(() {
+                                if (isSelected) {
+                                  selectedFilters[entry.key] = value;
+                                } else {
+                                  selectedFilters.remove(entry.key);
+                                }
+                              });
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          );
+        });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -338,7 +382,7 @@ class _MainAppState extends State<MainApp> {
                             width: MediaQuery.of(context).size.width / 2.8,
                           ),
                           InkWell(
-                            // onTap: _openFilter(context),
+                            onTap: _showFilterSheet,
                             child: Row(
                               children: [
                                 const Text("Filter"),
@@ -378,7 +422,7 @@ class _MainAppState extends State<MainApp> {
                 ),
               );
             } else if (snapshot.hasError) {
-              return const Center(child: Text("Error fetching categories"));
+              return Center(child: Text(snapshot.error.toString()));
             } else {
               return const Center(child: CircularProgressIndicator());
             }

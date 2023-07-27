@@ -37,11 +37,19 @@ class ProductCard extends StatelessWidget {
             width: MediaQuery.of(context).size.width / 4.6,
             height: MediaQuery.of(context).size.height / 7.4,
           ),
-          Center(
-            child: Text(name),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Rs ${price.toString()}",
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(name)
+            ],
           ),
-          Text(cond),
-          Text(price.toString())
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [Text(storage), Text(cond)],
+          )
         ],
       ),
     );
